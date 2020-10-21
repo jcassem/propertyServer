@@ -16,11 +16,17 @@ type Property struct {
 	Rent float32 `json:"rent"`
 }
 
-var exampleProperty = Property{
-	Name: "123 Fake Street",
-	Rent: 1200.00,
+// Example slice
+var properties = []Property{
+	Property{
+		Name: "123 Fake Street",
+		Rent: 1200.00,
+	},
+	Property{
+		Name: "2 Main Road",
+		Rent: 899.50,
+	},
 }
-var properties = []Property{exampleProperty}
 
 func main() {
 	// properties = append(properties, exampleProperty)
