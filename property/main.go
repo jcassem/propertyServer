@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -9,11 +10,24 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-var (
-	// ErrNameNotProvided is thrown when a name is not provided
-	HTTPMethodNotSupported = errors.New("no name was provided in the HTTP body")
-)
+// Property model
+type Property struct {
+	Name string  `json:"name"`
+	Rent float32 `json:"rent"`
+}
 
+var exampleProperty = Property{
+	Name: "123 Fake Street",
+	Rent: 1200.00,
+}
+var properties = []Property{exampleProperty}
+
+func main() {
+	// properties = append(properties, exampleProperty)
+	lambda.Start(HandleRequest)
+}
+
+// HandleRequest Handles REST routing
 func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	fmt.Printf("Body size = %d. \n", len(request.Body))
 	fmt.Println("Headers:")
@@ -22,16 +36,17 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 	}
 	if request.HTTPMethod == "GET" {
 		fmt.Printf("GET METHOD\n")
-		return events.APIGatewayProxyResponse{Body: "GET", StatusCode: 200}, nil
+		b, err := json.Marshal(properties)
+		if err != nil {
+			return events.APIGatewayProxyResponse{Body: "JSON Transformation Error", StatusCode: 500}, err
+		}
+		return events.APIGatewayProxyResponse{Body: string(b), StatusCode: 200}, nil
 	} else if request.HTTPMethod == "POST" {
 		fmt.Printf("POST METHOD\n")
 		return events.APIGatewayProxyResponse{Body: "POST", StatusCode: 200}, nil
 	} else {
-		fmt.Printf("NEITHER\n")
-		return events.APIGatewayProxyResponse{}, HTTPMethodNotSupported
+		var errMessage = "HTTP Method Not Supported"
+		fmt.Printf(errMessage + "\n")
+		return events.APIGatewayProxyResponse{Body: errMessage, StatusCode: 502}, errors.New(errMessage)
 	}
-}
-
-func main() {
-	lambda.Start(HandleRequest)
 }
