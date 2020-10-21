@@ -26,6 +26,10 @@ var properties = []Property{
 		Name: "2 Main Road",
 		Rent: 899.50,
 	},
+	Property{
+		Name: "Flat A 120 Regents Street",
+		Rent: 14060.66,
+	},
 }
 
 func main() {

@@ -1,0 +1,26 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+Description: An AWS Serverless Specification template describing your function.
+Resources:
+  propertyservergo:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      Handler: main
+      Runtime: go1.x
+      CodeUri: .
+      Description: ''
+      MemorySize: 512
+      Timeout: 15
+      Role: >-
+        arn:aws:iam::948139805326:role/service-role/property-server-go-role-vg61p032
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /property
+            Method: GET
+        Api2:
+          Type: Api
+          Properties:
+            Path: /MyResource
+            Method: ANY

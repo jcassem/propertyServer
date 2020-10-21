@@ -10,6 +10,12 @@ cd property
 go build main.go
 ```
 
+Run locally using [AWS Serverless Application Model (AWS SAM)](https://amzn.to/37uQjEa):
+```bash
+go build main.go
+sam local start-api
+```
+
 To build and update an AWS lambda:
 ```bash
 cd property
