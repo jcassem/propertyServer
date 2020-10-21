@@ -6,13 +6,12 @@ REST API for Property management written in Go to be deployed as AWS Lambdas.
 
 To build the code:
 ```bash
-cd property
+cd restApi
 go build main.go
 ```
 
-Run locally using [AWS Serverless Application Model (AWS SAM)](https://amzn.to/37uQjEa):
+Run latest build locally using [AWS Serverless Application Model (AWS SAM)](https://amzn.to/37uQjEa):
 ```bash
-go build main.go
 sam local start-api
 ```
 
