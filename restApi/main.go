@@ -6,31 +6,11 @@ import (
 	"errors"
 	"fmt"
 
+	"service.com/property"
+
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 )
-
-// Property model
-type Property struct {
-	Name string  `json:"name"`
-	Rent float32 `json:"rent"`
-}
-
-// Example slice
-var properties = []Property{
-	Property{
-		Name: "123 Fake Street",
-		Rent: 1200.00,
-	},
-	Property{
-		Name: "2 Main Road",
-		Rent: 899.50,
-	},
-	Property{
-		Name: "Flat A 120 Regents Street",
-		Rent: 14060.66,
-	},
-}
 
 func main() {
 	// properties = append(properties, exampleProperty)
@@ -46,7 +26,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 	}
 	if request.HTTPMethod == "GET" {
 		fmt.Printf("GET METHOD\n")
-		b, err := json.Marshal(properties)
+		b, err := json.Marshal(property.ListProperties())
 		if err != nil {
 			return events.APIGatewayProxyResponse{Body: "JSON Transformation Error", StatusCode: 500}, err
 		}
