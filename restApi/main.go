@@ -10,7 +10,24 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
+
+var dynamoDbSession (*dynamodb.DynamoDB)
+
+// init Create dynamo db session
+func init() {
+	// Initialize a session that the SDK will use to load
+	// credentials from the shared credentials file ~/.aws/credentials
+	// and region from the shared configuration file ~/.aws/config.
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
+
+	// Create DynamoDB client
+	dynamoDbSession = dynamodb.New(sess)
+}
 
 func main() {
 	// properties = append(properties, exampleProperty)
@@ -26,7 +43,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 	}
 	if request.HTTPMethod == "GET" {
 		fmt.Printf("GET METHOD\n")
-		b, err := json.Marshal(property.ListProperties())
+		b, err := json.Marshal(property.ListProperties(dynamoDbSession))
 		if err != nil {
 			return events.APIGatewayProxyResponse{Body: "JSON Transformation Error", StatusCode: 500}, err
 		}
