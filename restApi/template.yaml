@@ -17,9 +17,24 @@ Resources:
         Api1:
           Type: Api
           Properties:
-            Path: /property
+            Path: '/property/{id}'
             Method: GET
         Api2:
+          Type: Api
+          Properties:
+            Path: '/property/{id}'
+            Method: PUT
+        Api3:
+          Type: Api
+          Properties:
+            Path: /property
+            Method: POST
+        Api4:
+          Type: Api
+          Properties:
+            Path: /property
+            Method: GET
+        Api5:
           Type: Api
           Properties:
             Path: /MyResource

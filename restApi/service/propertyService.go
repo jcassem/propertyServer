@@ -2,7 +2,6 @@ package property
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -19,8 +18,8 @@ type Property struct {
 // tableName DynamoDb table name to query against
 const tableName = "props"
 
-// ListProperties Lists all properties
-func ListProperties(dynamoDbSession *dynamodb.DynamoDB) []Property {
+// List Lists all properties
+func List(dynamoDbSession *dynamodb.DynamoDB) []Property {
 	fmt.Printf("List Properties\n")
 	propertyList := []Property{}
 
@@ -30,9 +29,7 @@ func ListProperties(dynamoDbSession *dynamodb.DynamoDB) []Property {
 
 	result, err := dynamoDbSession.Scan(queryParams)
 	if err != nil {
-		fmt.Println("Query API call failed:")
-		fmt.Println((err.Error()))
-		os.Exit(1)
+		panic(fmt.Sprintf("Query API call failed, %v", err))
 	}
 
 	err = dynamodbattribute.UnmarshalListOfMaps(result.Items, &propertyList)
@@ -41,4 +38,29 @@ func ListProperties(dynamoDbSession *dynamodb.DynamoDB) []Property {
 	}
 
 	return propertyList
+}
+
+// Get Property related to provided id.
+func Get(id string, dynamoDbSession *dynamodb.DynamoDB) Property {
+	fmt.Printf("Get Property with id: %s\n", id)
+	property := Property{}
+
+	result, err := dynamoDbSession.GetItem(&dynamodb.GetItemInput{
+		TableName: aws.String(tableName),
+		Key: map[string]*dynamodb.AttributeValue{
+			"id": {
+				S: aws.String(id),
+			},
+		},
+	})
+	if err != nil {
+		panic(fmt.Sprintf("Query API call failed, %v", err))
+	}
+
+	err = dynamodbattribute.UnmarshalMap(result.Item, &property)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to unmarshal Record, %v", err))
+	}
+
+	return property
 }
