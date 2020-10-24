@@ -53,11 +53,17 @@ func Get(id string, dynamoDbSession *dynamodb.DynamoDB) Property {
 			},
 		},
 	})
+
 	if err != nil {
 		panic(fmt.Sprintf("Query API call failed, %v", err))
 	}
 
+	if result.Item == nil {
+		panic(fmt.Sprintf("Could not find '%s'", id))
+	}
+
 	err = dynamodbattribute.UnmarshalMap(result.Item, &property)
+
 	if err != nil {
 		panic(fmt.Sprintf("Failed to unmarshal Record, %v", err))
 	}
