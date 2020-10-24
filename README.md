@@ -8,7 +8,6 @@ This uses an AWS DynamoDb instance with a partition key of 'id', which is a stri
 
 To build the code:
 ```bash
-cd restApi
 go build main.go
 ```
 
@@ -19,7 +18,6 @@ sam local start-api
 
 To build and update an AWS lambda:
 ```bash
-cd property
 GOOS=linux go build main.go
 zip function.zip main
 aws lambda update-function-code --function-name property-server-go --zip-file fileb://function.zip
