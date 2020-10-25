@@ -6,29 +6,29 @@ import (
 	"errors"
 	"fmt"
 
-	"service.com/property"
+	"github.com/jcassem/propertyServer/property"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
 
 const idParameterName = "id"
 
-var dynamoDbSession (*dynamodb.DynamoDB)
+// DynamoDb session
+var dbSession = new(property.DbSession)
 
-// init Create dynamo db session
+// init Initialize a db session that the SDK will use to load
+// 		credentials from the shared credentials file ~/.aws/credentials
+// 		and region from the shared configuration file ~/.aws/config.
 func init() {
-	// Initialize a session that the SDK will use to load
-	// credentials from the shared credentials file ~/.aws/credentials
-	// and region from the shared configuration file ~/.aws/config.
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
-
-	// Create DynamoDB client
-	dynamoDbSession = dynamodb.New(sess)
+	var svc *dynamodb.DynamoDB = dynamodb.New(sess)
+	dbSession.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
 }
 
 func main() {
@@ -61,7 +61,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 
 func handleGetList() (events.APIGatewayProxyResponse, error) {
 	fmt.Printf("(GET) LIST\n")
-	b, err := json.Marshal(property.List(dynamoDbSession))
+	b, err := json.Marshal(property.List(dbSession))
 	if err != nil {
 		return events.APIGatewayProxyResponse{Body: "JSON Transformation Error", StatusCode: 500}, err
 	}
@@ -70,7 +70,7 @@ func handleGetList() (events.APIGatewayProxyResponse, error) {
 
 func handleGet(id string) (events.APIGatewayProxyResponse, error) {
 	fmt.Printf("(GET) ITEM\n")
-	b, err := json.Marshal(property.Get(id, dynamoDbSession))
+	b, err := json.Marshal(property.Get(id, dbSession))
 	if err != nil {
 		return events.APIGatewayProxyResponse{Body: "JSON Transformation Error", StatusCode: 500}, err
 	}

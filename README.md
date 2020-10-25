@@ -4,6 +4,8 @@ REST API for Property management written in Go to be deployed as AWS Lambdas.
 
 This uses an AWS DynamoDb instance with a partition key of 'id', which is a string intended to house UUIDs.
 
+Both the Lambda and DynamoDb are assumed to be in the same region.
+
 ## Build/Deploy
 
 To build the code:

@@ -1,4 +1,4 @@
-module service.com/property
+module github.com/jcassem/propertyServer/property
 
 go 1.15
 

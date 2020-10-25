@@ -6,7 +6,15 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
+
+// DbSession can be assigned a DynamoDB connector like:
+//	svc := dynamodb.DynamoDB(sess)
+//	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
+type DbSession struct {
+	DynamoDB dynamodbiface.DynamoDBAPI
+}
 
 // Property model
 type Property struct {
@@ -19,7 +27,7 @@ type Property struct {
 const tableName = "props"
 
 // List Lists all properties
-func List(dynamoDbSession *dynamodb.DynamoDB) []Property {
+func List(ig *DbSession) []Property {
 	fmt.Printf("List Properties\n")
 	propertyList := []Property{}
 
@@ -27,7 +35,7 @@ func List(dynamoDbSession *dynamodb.DynamoDB) []Property {
 		TableName: aws.String(tableName),
 	}
 
-	result, err := dynamoDbSession.Scan(queryParams)
+	result, err := ig.DynamoDB.Scan(queryParams)
 	if err != nil {
 		panic(fmt.Sprintf("Query API call failed, %v", err))
 	}
@@ -41,11 +49,11 @@ func List(dynamoDbSession *dynamodb.DynamoDB) []Property {
 }
 
 // Get Property related to provided id.
-func Get(id string, dynamoDbSession *dynamodb.DynamoDB) Property {
+func Get(id string, ig *DbSession) Property {
 	fmt.Printf("Get Property with id: %s\n", id)
 	property := Property{}
 
-	result, err := dynamoDbSession.GetItem(&dynamodb.GetItemInput{
+	result, err := ig.DynamoDB.GetItem(&dynamodb.GetItemInput{
 		TableName: aws.String(tableName),
 		Key: map[string]*dynamodb.AttributeValue{
 			"id": {
