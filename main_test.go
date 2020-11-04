@@ -11,7 +11,10 @@ import (
 )
 
 func TestGetPropertyListHandler(t *testing.T) {
-	request := events.APIGatewayProxyRequest{HTTPMethod: "GET"}
+	request := events.APIGatewayProxyRequest{
+		HTTPMethod: "GET",
+	}
+
 	expected := []property.Property{}
 	actual := []property.Property{}
 
@@ -26,6 +29,3 @@ func TestGetPropertyListHandler(t *testing.T) {
 	}
 	assert.IsType(t, expected, actual)
 }
-
-// func TestGetPropertyHandler(t *testing.T) {
-// }

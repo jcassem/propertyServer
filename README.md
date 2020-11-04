@@ -6,11 +6,16 @@ This uses an AWS DynamoDb instance with a partition key of 'id', which is a stri
 
 Both the Lambda and DynamoDb are assumed to be in the same region.
 
+
 ## Build/Deploy
 
 To build the code:
 ```bash
 go build main.go
+```
+To build the code for AWS SAM
+```bash
+sam build
 ```
 
 Run latest build locally using [AWS Serverless Application Model (AWS SAM)](https://amzn.to/37uQjEa):
@@ -26,3 +31,11 @@ aws lambda update-function-code --function-name property-server-go --zip-file fi
 ```
 
 Upload zip to AWS Lambda using AWS console (auto-deployemnt coming soon).
+
+
+## Examples of use
+
+### Curl Commands
+```bash
+curl -H "Content-Type: application/json" -X POST -d '{"name":"99 Fleet Street","rent":450.00}' http://localhost:3000/property
+```

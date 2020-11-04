@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/google/uuid"
 )
 
 // DbSession Wrapper pof a DynamoDB connector. Example of assignment:
@@ -30,8 +31,14 @@ const (
 	// UnmarshalErrorMessageFormat Error message format for failed conversions from json to type.
 	UnmarshalErrorMessageFormat = "Failed to unmarshal item, %v"
 
-	// NotFoundErrorMessageFormat Error message format to use when an item has not been found
+	// NotFoundErrorMessageFormat Error message format to use when an item has not been found.
 	NotFoundErrorMessageFormat = "Could not find '%s'"
+
+	// InvalidPropertErrorMessageFormat Error message format to use when an item is missing key information.
+	InvalidPropertErrorMessageFormat = "Property is not valid: %v"
+
+	// PersistenceErrorMessageFormat Error message format to use when an error occurred during persisting/saving an item.
+	PersistenceErrorMessageFormat = "An error occured while saving: %v"
 )
 
 // tableName DynamoDb table name to query against
@@ -85,6 +92,33 @@ func GetProperty(id string, ig *DbSession) Property {
 
 	if err != nil {
 		panic(fmt.Sprintf(UnmarshalErrorMessageFormat, err))
+	}
+
+	return property
+}
+
+// CreateProperty Persists the provided property item.
+func CreateProperty(property Property, ig *DbSession) Property {
+	if property.Name == "" {
+		panic(fmt.Sprintf(InvalidPropertErrorMessageFormat, property))
+	}
+
+	property.ID = fmt.Sprintf("%v", uuid.Must(uuid.NewRandom()))
+	fmt.Printf("Create property with name: %s\n", property.ID)
+
+	attributeValue, err := dynamodbattribute.MarshalMap(property)
+	if err != nil {
+		panic(fmt.Sprintf(UnmarshalErrorMessageFormat, err))
+	}
+
+	putItemInput := &dynamodb.PutItemInput{
+		Item:      attributeValue,
+		TableName: aws.String(tableName),
+	}
+
+	_, err = ig.DynamoDB.PutItem(putItemInput)
+	if err != nil {
+		panic(fmt.Sprintf(PersistenceErrorMessageFormat, err))
 	}
 
 	return property

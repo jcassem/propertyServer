@@ -15,7 +15,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
 
-const idParameterName = "id"
+// IDParameterName Name of the expected Id path parameter for GET requests
+const IDParameterName = "id"
+
+const (
+	httpMethodNotSupportedErrorMessage = "HTTP Method Not Supported"
+
+	requestBodyCannotBeEmptyErrorMessage = "Request Body Cannot Be Empty"
+
+	jsonTransformationErrorMessage = "JSON Transformation Error"
+)
 
 // DynamoDb session
 var dbSession = new(property.DbSession)
@@ -43,35 +52,54 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 	}
 
 	if request.HTTPMethod == "GET" {
-		if id, ok := request.PathParameters[idParameterName]; ok {
+		if id, ok := request.PathParameters[IDParameterName]; ok {
 			return handleGet(id)
 		}
 
 		return handleGetList()
 	} else if request.HTTPMethod == "POST" {
-		fmt.Printf("POST METHOD\n")
-		return events.APIGatewayProxyResponse{Body: "POST", StatusCode: 200}, nil
+		if request.Body == "" {
+			return events.APIGatewayProxyResponse{Body: requestBodyCannotBeEmptyErrorMessage, StatusCode: 502}, errors.New(requestBodyCannotBeEmptyErrorMessage)
+		}
+
+		return handlePost(request.Body)
 	} else {
-		var errMessage = "HTTP Method Not Supported"
-		fmt.Printf(errMessage + "\n")
-		return events.APIGatewayProxyResponse{Body: errMessage, StatusCode: 502}, errors.New(errMessage)
+		return events.APIGatewayProxyResponse{Body: httpMethodNotSupportedErrorMessage, StatusCode: 502}, errors.New(httpMethodNotSupportedErrorMessage)
 	}
 }
 
 func handleGetList() (events.APIGatewayProxyResponse, error) {
 	fmt.Printf("(GET) LIST\n")
+
 	b, err := json.Marshal(property.GetPropertyList(dbSession))
 	if err != nil {
-		return events.APIGatewayProxyResponse{Body: "JSON Transformation Error", StatusCode: 500}, err
+		return events.APIGatewayProxyResponse{Body: jsonTransformationErrorMessage, StatusCode: 500}, err
 	}
+
 	return events.APIGatewayProxyResponse{Body: string(b), StatusCode: 200}, nil
 }
 
 func handleGet(id string) (events.APIGatewayProxyResponse, error) {
 	fmt.Printf("(GET) ITEM\n")
+
 	b, err := json.Marshal(property.GetProperty(id, dbSession))
 	if err != nil {
-		return events.APIGatewayProxyResponse{Body: "JSON Transformation Error", StatusCode: 500}, err
+		return events.APIGatewayProxyResponse{Body: jsonTransformationErrorMessage, StatusCode: 500}, err
 	}
+
+	return events.APIGatewayProxyResponse{Body: string(b), StatusCode: 200}, nil
+}
+
+func handlePost(requestBody string) (events.APIGatewayProxyResponse, error) {
+	fmt.Printf("(POST) ITEM\n")
+
+	var propertyToCreate property.Property
+	json.Unmarshal([]byte(requestBody), &propertyToCreate)
+
+	b, err := json.Marshal(property.CreateProperty(propertyToCreate, dbSession))
+	if err != nil {
+		return events.APIGatewayProxyResponse{Body: jsonTransformationErrorMessage, StatusCode: 500}, err
+	}
+
 	return events.APIGatewayProxyResponse{Body: string(b), StatusCode: 200}, nil
 }

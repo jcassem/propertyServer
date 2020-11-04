@@ -1,3 +1,5 @@
 .vscode/*
 *.zip
 main
+propertyServer
+.aws-sam/
