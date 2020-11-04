@@ -61,7 +61,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 
 func handleGetList() (events.APIGatewayProxyResponse, error) {
 	fmt.Printf("(GET) LIST\n")
-	b, err := json.Marshal(property.List(dbSession))
+	b, err := json.Marshal(property.ListProperties(dbSession))
 	if err != nil {
 		return events.APIGatewayProxyResponse{Body: "JSON Transformation Error", StatusCode: 500}, err
 	}
@@ -70,7 +70,7 @@ func handleGetList() (events.APIGatewayProxyResponse, error) {
 
 func handleGet(id string) (events.APIGatewayProxyResponse, error) {
 	fmt.Printf("(GET) ITEM\n")
-	b, err := json.Marshal(property.Get(id, dbSession))
+	b, err := json.Marshal(property.GetProperty(id, dbSession))
 	if err != nil {
 		return events.APIGatewayProxyResponse{Body: "JSON Transformation Error", StatusCode: 500}, err
 	}

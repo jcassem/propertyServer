@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
 
-// DbSession can be assigned a DynamoDB connector like:
+// DbSession Wrapper pof a DynamoDB connector. Example of assignment:
 //	svc := dynamodb.DynamoDB(sess)
 //	getter.DynamoDB = dynamodbiface.DynamoDBAPI(svc)
 type DbSession struct {
@@ -23,11 +23,22 @@ type Property struct {
 	Rent float32 `json:"rent"`
 }
 
+const (
+	// QueryErrorMessageFormat Error message format for failed queries.
+	QueryErrorMessageFormat = "Query API call failed, %v"
+
+	// UnmarshalErrorMessageFormat Error message format for failed conversions from json to type.
+	UnmarshalErrorMessageFormat = "Failed to unmarshal item, %v"
+
+	// NotFoundErrorMessageFormat Error message format to use when an item has not been found
+	NotFoundErrorMessageFormat = "Could not find '%s'"
+)
+
 // tableName DynamoDb table name to query against
 const tableName = "props"
 
 // List Lists all properties
-func List(ig *DbSession) []Property {
+func ListProperties(ig *DbSession) []Property {
 	fmt.Printf("List Properties\n")
 	propertyList := []Property{}
 
@@ -37,19 +48,19 @@ func List(ig *DbSession) []Property {
 
 	result, err := ig.DynamoDB.Scan(queryParams)
 	if err != nil {
-		panic(fmt.Sprintf("Query API call failed, %v", err))
+		panic(fmt.Sprintf(QueryErrorMessageFormat, err))
 	}
 
 	err = dynamodbattribute.UnmarshalListOfMaps(result.Items, &propertyList)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to unmarshal Record, %v", err))
+		panic(fmt.Sprintf(UnmarshalErrorMessageFormat, err))
 	}
 
 	return propertyList
 }
 
 // Get Property related to provided id.
-func Get(id string, ig *DbSession) Property {
+func GetProperty(id string, ig *DbSession) Property {
 	fmt.Printf("Get Property with id: %s\n", id)
 	property := Property{}
 
@@ -63,17 +74,17 @@ func Get(id string, ig *DbSession) Property {
 	})
 
 	if err != nil {
-		panic(fmt.Sprintf("Query API call failed, %v", err))
+		panic(fmt.Sprintf(QueryErrorMessageFormat, err))
 	}
 
 	if result.Item == nil {
-		panic(fmt.Sprintf("Could not find '%s'", id))
+		panic(fmt.Sprintf(NotFoundErrorMessageFormat, id))
 	}
 
 	err = dynamodbattribute.UnmarshalMap(result.Item, &property)
 
 	if err != nil {
-		panic(fmt.Sprintf("Failed to unmarshal Record, %v", err))
+		panic(fmt.Sprintf(UnmarshalErrorMessageFormat, err))
 	}
 
 	return property
