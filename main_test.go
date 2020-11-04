@@ -26,3 +26,6 @@ func TestGetPropertyListHandler(t *testing.T) {
 	}
 	assert.IsType(t, expected, actual)
 }
+
+// func TestGetPropertyHandler(t *testing.T) {
+// }

@@ -2,6 +2,7 @@ package property
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -9,18 +10,29 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
 
-const (
-	expectedPropertyID   = "fefd41e1-a66f-4e18-bb81-710587ac4574"
-	expectedPropertyName = "Test Property"
-	expectedPropertyRent = 999.99
-)
-
 func getExpectedProperty() Property {
 	return Property{
-		ID:   expectedPropertyID,
-		Name: expectedPropertyName,
-		Rent: expectedPropertyRent,
+		ID:   "fefd41e1-a66f-4e18-bb81-710587ac4574",
+		Name: "Test Property",
+		Rent: 999.99,
 	}
+}
+
+func getExpectedPropertyAsDynamoDbOutput() map[string]*dynamodb.AttributeValue {
+	var expectedProperty = getExpectedProperty()
+	outputItem := make(map[string]*dynamodb.AttributeValue)
+
+	outputItem["id"] = &dynamodb.AttributeValue{
+		S: aws.String(expectedProperty.ID),
+	}
+	outputItem["name"] = &dynamodb.AttributeValue{
+		S: aws.String(expectedProperty.Name),
+	}
+	outputItem["rent"] = &dynamodb.AttributeValue{
+		N: aws.String(fmt.Sprintf("%f", expectedProperty.Rent)),
+	}
+
+	return outputItem
 }
 
 // A fakeDynamoDB instance to use in testing
@@ -33,29 +45,38 @@ type fakeDynamoDB struct {
 // Mock GetItem such that the output returned carries values identical to input.
 func (fd *fakeDynamoDB) GetItem(input *dynamodb.GetItemInput) (*dynamodb.GetItemOutput, error) {
 	output := new(dynamodb.GetItemOutput)
-	output.Item = make(map[string]*dynamodb.AttributeValue)
+	output.Item = getExpectedPropertyAsDynamoDbOutput()
 
-	output.Item["id"] = &dynamodb.AttributeValue{
-		S: aws.String(expectedPropertyID),
-	}
-	output.Item["name"] = &dynamodb.AttributeValue{
-		S: aws.String(expectedPropertyName),
-	}
-	output.Item["rent"] = &dynamodb.AttributeValue{
-		N: aws.String(fmt.Sprintf("%f", expectedPropertyRent)),
-	}
+	return output, fd.err
+}
+
+// Mock Scan such that the output returned carries values identical to input.
+func (fd *fakeDynamoDB) Scan(input *dynamodb.ScanInput) (*dynamodb.ScanOutput, error) {
+	output := new(dynamodb.ScanOutput)
+	outputItems := []map[string]*dynamodb.AttributeValue{getExpectedPropertyAsDynamoDbOutput()}
+	output.SetItems(outputItems)
 
 	return output, fd.err
 }
 
 func TestGetProperty(t *testing.T) {
-
-	var expectedProperty = getExpectedProperty()
+	var expected = getExpectedProperty()
 
 	getter := new(DbSession)
 	getter.DynamoDB = &fakeDynamoDB{}
 
-	if actualProperty := GetProperty(expectedPropertyID, getter); actualProperty != expectedProperty {
-		t.Errorf("Expected %v but got %v", expectedProperty, actualProperty)
+	if actual := GetProperty(expected.ID, getter); actual != expected {
+		t.Errorf("Expected %v but got %v", expected, actual)
+	}
+}
+
+func TestGetPropertyList(t *testing.T) {
+	var expected = []Property{getExpectedProperty()}
+
+	getter := new(DbSession)
+	getter.DynamoDB = &fakeDynamoDB{}
+
+	if actual := GetPropertyList(getter); !reflect.DeepEqual(actual, expected) {
+		t.Errorf("Expected %v but got %v", expected, actual)
 	}
 }

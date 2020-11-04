@@ -32,7 +32,6 @@ func init() {
 }
 
 func main() {
-	// properties = append(properties, exampleProperty)
 	lambda.Start(HandleRequest)
 }
 
@@ -61,7 +60,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 
 func handleGetList() (events.APIGatewayProxyResponse, error) {
 	fmt.Printf("(GET) LIST\n")
-	b, err := json.Marshal(property.ListProperties(dbSession))
+	b, err := json.Marshal(property.GetPropertyList(dbSession))
 	if err != nil {
 		return events.APIGatewayProxyResponse{Body: "JSON Transformation Error", StatusCode: 500}, err
 	}

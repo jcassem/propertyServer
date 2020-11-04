@@ -37,8 +37,8 @@ const (
 // tableName DynamoDb table name to query against
 const tableName = "props"
 
-// List Lists all properties
-func ListProperties(ig *DbSession) []Property {
+// GetPropertyList Lists all properties
+func GetPropertyList(ig *DbSession) []Property {
 	fmt.Printf("List Properties\n")
 	propertyList := []Property{}
 
@@ -59,7 +59,7 @@ func ListProperties(ig *DbSession) []Property {
 	return propertyList
 }
 
-// Get Property related to provided id.
+// GetProperty Property related to provided id.
 func GetProperty(id string, ig *DbSession) Property {
 	fmt.Printf("Get Property with id: %s\n", id)
 	property := Property{}
