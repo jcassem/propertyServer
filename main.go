@@ -23,6 +23,8 @@ const (
 
 	requestBodyCannotBeEmptyErrorMessage = "Request Body Cannot Be Empty"
 
+	idParameterCannotBeEmptyErrorMessage = "Id parameter missing"
+
 	jsonTransformationErrorMessage = "JSON Transformation Error"
 )
 
@@ -46,10 +48,10 @@ func main() {
 
 // HandleRequest Handles REST routing
 func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	fmt.Println("Headers:")
-	for key, value := range request.Headers {
-		fmt.Printf("  %s: %s\n", key, value)
-	}
+	// fmt.Println("Headers:")
+	// for key, value := range request.Headers {
+	// 	fmt.Printf("  %s: %s\n", key, value)
+	// }
 
 	if request.HTTPMethod == "GET" {
 		if id, ok := request.PathParameters[IDParameterName]; ok {
@@ -57,15 +59,29 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 		}
 
 		return handleGetList()
+	} else if request.HTTPMethod == "PUT" {
+		if id, ok := request.PathParameters[IDParameterName]; ok {
+			if request.Body == "" {
+				return raiseError(400, requestBodyCannotBeEmptyErrorMessage)
+			}
+
+			return handlePut(id, request.Body)
+		}
+
+		return raiseError(400, idParameterCannotBeEmptyErrorMessage)
 	} else if request.HTTPMethod == "POST" {
 		if request.Body == "" {
-			return events.APIGatewayProxyResponse{Body: requestBodyCannotBeEmptyErrorMessage, StatusCode: 502}, errors.New(requestBodyCannotBeEmptyErrorMessage)
+			return raiseError(400, requestBodyCannotBeEmptyErrorMessage)
 		}
 
 		return handlePost(request.Body)
 	} else {
-		return events.APIGatewayProxyResponse{Body: httpMethodNotSupportedErrorMessage, StatusCode: 502}, errors.New(httpMethodNotSupportedErrorMessage)
+		return raiseError(502, httpMethodNotSupportedErrorMessage)
 	}
+}
+
+func raiseError(statusCode int, errorMessage string) (events.APIGatewayProxyResponse, error) {
+	return events.APIGatewayProxyResponse{Body: errorMessage, StatusCode: statusCode}, errors.New(errorMessage)
 }
 
 func handleGetList() (events.APIGatewayProxyResponse, error) {
@@ -97,6 +113,20 @@ func handlePost(requestBody string) (events.APIGatewayProxyResponse, error) {
 	json.Unmarshal([]byte(requestBody), &propertyToCreate)
 
 	b, err := json.Marshal(property.CreateProperty(propertyToCreate, dbSession))
+	if err != nil {
+		return events.APIGatewayProxyResponse{Body: jsonTransformationErrorMessage, StatusCode: 500}, err
+	}
+
+	return events.APIGatewayProxyResponse{Body: string(b), StatusCode: 200}, nil
+}
+
+func handlePut(id string, requestBody string) (events.APIGatewayProxyResponse, error) {
+	fmt.Printf("(PUT) ITEM\n")
+
+	var propertyToUpdate property.Property
+	json.Unmarshal([]byte(requestBody), &propertyToUpdate)
+
+	b, err := json.Marshal(property.UpdateProperty(id, propertyToUpdate, dbSession))
 	if err != nil {
 		return events.APIGatewayProxyResponse{Body: jsonTransformationErrorMessage, StatusCode: 500}, err
 	}

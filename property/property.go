@@ -104,7 +104,23 @@ func CreateProperty(property Property, ig *DbSession) Property {
 	}
 
 	property.ID = fmt.Sprintf("%v", uuid.Must(uuid.NewRandom()))
-	fmt.Printf("Create property with name: %s\n", property.ID)
+	fmt.Printf("Create property with id: %s\n", property.ID)
+
+	return persistProperty(property, ig)
+}
+
+// UpdateProperty Updates and persists the provided property details against the provided id.
+func UpdateProperty(id string, property Property, ig *DbSession) Property {
+	if id == "" || id != property.ID {
+		panic(fmt.Sprintf(InvalidPropertErrorMessageFormat, property))
+	}
+
+	fmt.Printf("Update property with id: %s\n", property.ID)
+	return persistProperty(property, ig)
+}
+
+// persistProperty Saves the provided property against the provided DB session.
+func persistProperty(property Property, ig *DbSession) Property {
 
 	attributeValue, err := dynamodbattribute.MarshalMap(property)
 	if err != nil {
@@ -121,5 +137,6 @@ func CreateProperty(property Property, ig *DbSession) Property {
 		panic(fmt.Sprintf(PersistenceErrorMessageFormat, err))
 	}
 
+	// Updated data not retuned so we send back the request item (or can perform a GetItem request)
 	return property
 }

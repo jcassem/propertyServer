@@ -59,6 +59,12 @@ func (fd *fakeDynamoDB) Scan(input *dynamodb.ScanInput) (*dynamodb.ScanOutput, e
 	return output, fd.err
 }
 
+// Mock Scan such that the output returned carries values identical to input.
+func (fd *fakeDynamoDB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, error) {
+	output := new(dynamodb.PutItemOutput)
+	return output, fd.err
+}
+
 func TestGetProperty(t *testing.T) {
 	var expected = getExpectedProperty()
 
@@ -77,6 +83,30 @@ func TestGetPropertyList(t *testing.T) {
 	getter.DynamoDB = &fakeDynamoDB{}
 
 	if actual := GetPropertyList(getter); !reflect.DeepEqual(actual, expected) {
+		t.Errorf("Expected %v but got %v", expected, actual)
+	}
+}
+
+func TestCreateProperty(t *testing.T) {
+	var expected = getExpectedProperty()
+
+	getter := new(DbSession)
+	getter.DynamoDB = &fakeDynamoDB{}
+
+	actual := CreateProperty(expected, getter)
+
+	if expected.Name != actual.Name || expected.Rent != actual.Rent {
+		t.Errorf("Expected %v but got %v", expected, actual)
+	}
+}
+
+func TestUpdateProperty(t *testing.T) {
+	var expected = getExpectedProperty()
+
+	getter := new(DbSession)
+	getter.DynamoDB = &fakeDynamoDB{}
+
+	if actual := UpdateProperty(expected.ID, expected, getter); !reflect.DeepEqual(actual, expected) {
 		t.Errorf("Expected %v but got %v", expected, actual)
 	}
 }

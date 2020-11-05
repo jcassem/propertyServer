@@ -37,5 +37,17 @@ Upload zip to AWS Lambda using AWS console (auto-deployemnt coming soon).
 
 ### Curl Commands
 ```bash
+# GET (List)
+curl -X GET http:/localhost:3000/property
+
+# GET (Item)
+curl -X GET http://localhost:3000/property/01b08170-bc7a-459a-a785-089f9df1a896
+
+# POST (Create)
 curl -H "Content-Type: application/json" -X POST -d '{"name":"99 Fleet Street","rent":450.00}' http://localhost:3000/property
+
+# PUT (Update)
+curl -H "Content-Type: application/json" -X PUT \
+    -d '{"id": "01b08170-bc7a-459a-a785-089f9df1a896","name":"99b Fleet Street","rent":500.00}' \
+    http://localhost:3000/property/01b08170-bc7a-459a-a785-089f9df1a896
 ```
