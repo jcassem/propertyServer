@@ -1,6 +1,7 @@
 package property
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -25,33 +26,33 @@ type Property struct {
 }
 
 const (
-	// QueryErrorMessageFormat Error message format for failed queries.
-	QueryErrorMessageFormat = "Query API call failed, %v"
+	// QueryErrorMessageType Error message format for failed queries.
+	QueryErrorMessageType = "Query API call failed"
 
-	// UnmarshalErrorMessageFormat Error message format for failed conversions from json to type.
-	UnmarshalErrorMessageFormat = "Failed to unmarshal item, %v"
+	// UnmarshalErrorMessageType Error message format for failed conversions from json to type.
+	UnmarshalErrorMessageType = "Failed to unmarshal item"
 
-	// NotFoundErrorMessageFormat Error message format to use when an item has not been found.
-	NotFoundErrorMessageFormat = "Could not find '%s'"
+	// NotFoundErrorMessageType Error message format to use when an item has not been found.
+	NotFoundErrorMessageType = "Could not find property"
 
-	// InvalidPropertErrorMessageFormat Error message format to use when an item is missing key information.
-	InvalidPropertErrorMessageFormat = "Property is not valid: %v"
+	// InvalidPropertErrorMessageType Error message format to use when an item is missing key information.
+	InvalidPropertErrorMessageType = "Property is not valid"
 
-	// PersistenceErrorMessageFormat Error message format to use when an error occurred during persisting/saving an item.
-	PersistenceErrorMessageFormat = "An error occured while saving: %v"
+	// PersistenceErrorMessageType Error message format to use when an error occurred during persisting/saving an item.
+	PersistenceErrorMessageType = "An error occured while saving"
 )
 
-// ServiceError Error wrapper
+// ServiceError Error wrapper for service
 type ServiceError struct {
-	ErrorType string //
-	Error     error
+	ErrorType string // Error handling constant
+	Error     error  // Error
 }
 
 // tableName DynamoDb table name to query against
 const tableName = "props"
 
 // GetPropertyList Lists all properties
-func GetPropertyList(ig *DbSession) (*[]Property, error) {
+func GetPropertyList(ig *DbSession) (*[]Property, *ServiceError) {
 	fmt.Printf("List Properties\n")
 	propertyList := []Property{}
 
@@ -61,21 +62,27 @@ func GetPropertyList(ig *DbSession) (*[]Property, error) {
 
 	result, err := ig.DynamoDB.Scan(queryParams)
 	if err != nil {
-		fmt.Sprintf(QueryErrorMessageFormat, err)
-		return nil, err
+		serviceError := ServiceError{
+			ErrorType: QueryErrorMessageType,
+			Error:     err,
+		}
+		return nil, &serviceError
 	}
 
 	err = dynamodbattribute.UnmarshalListOfMaps(result.Items, &propertyList)
 	if err != nil {
-		fmt.Sprintf(UnmarshalErrorMessageFormat, err)
-		return nil, err
+		serviceError := ServiceError{
+			ErrorType: UnmarshalErrorMessageType,
+			Error:     err,
+		}
+		return nil, &serviceError
 	}
 
-	return &propertyList, err
+	return &propertyList, nil
 }
 
 // GetProperty Property related to provided id.
-func GetProperty(id string, ig *DbSession) (*Property, error) {
+func GetProperty(id string, ig *DbSession) (*Property, *ServiceError) {
 	fmt.Printf("Get Property with id: %s\n", id)
 	property := Property{}
 
@@ -89,27 +96,41 @@ func GetProperty(id string, ig *DbSession) (*Property, error) {
 	})
 
 	if err != nil {
-		fmt.Sprintf(QueryErrorMessageFormat, err)
-		return nil, err
+		serviceError := ServiceError{
+			ErrorType: QueryErrorMessageType,
+			Error:     err,
+		}
+		return nil, &serviceError
 	}
 
 	if result.Item == nil {
-		fmt.Sprintf(NotFoundErrorMessageFormat, id)
-		return nil, err
+		serviceError := ServiceError{
+			ErrorType: NotFoundErrorMessageType,
+			Error:     err,
+		}
+		return nil, &serviceError
 	}
 
 	err = dynamodbattribute.UnmarshalMap(result.Item, &property)
 	if err != nil {
-		fmt.Sprintf(UnmarshalErrorMessageFormat, err)
+		serviceError := ServiceError{
+			ErrorType: UnmarshalErrorMessageType,
+			Error:     err,
+		}
+		return nil, &serviceError
 	}
 
-	return &property, err
+	return &property, nil
 }
 
 // CreateProperty Persists the provided property item.
-func CreateProperty(property Property, ig *DbSession) (Property, error) {
+func CreateProperty(property Property, ig *DbSession) (*Property, *ServiceError) {
 	if property.Name == "" {
-		panic(fmt.Sprintf(InvalidPropertErrorMessageFormat, property))
+		serviceError := ServiceError{
+			ErrorType: InvalidPropertErrorMessageType,
+			Error:     errors.New("Name missing"),
+		}
+		return nil, &serviceError
 	}
 
 	property.ID = fmt.Sprintf("%v", uuid.Must(uuid.NewRandom()))
@@ -119,9 +140,13 @@ func CreateProperty(property Property, ig *DbSession) (Property, error) {
 }
 
 // UpdateProperty Updates and persists the provided property details against the provided id.
-func UpdateProperty(id string, property Property, ig *DbSession) (Property, error) {
+func UpdateProperty(id string, property Property, ig *DbSession) (*Property, *ServiceError) {
 	if id == "" || id != property.ID {
-		panic(fmt.Sprintf(InvalidPropertErrorMessageFormat, property))
+		serviceError := ServiceError{
+			ErrorType: InvalidPropertErrorMessageType,
+			Error:     errors.New("Id missing"),
+		}
+		return nil, &serviceError
 	}
 
 	fmt.Sprintf("Update property with id: %s\n", property.ID)
@@ -129,9 +154,13 @@ func UpdateProperty(id string, property Property, ig *DbSession) (Property, erro
 }
 
 // DeleteProperty Deletes property associated to the provided id.
-func DeleteProperty(id string, ig *DbSession) error {
+func DeleteProperty(id string, ig *DbSession) *ServiceError {
 	if id == "" {
-		panic(fmt.Sprintf(InvalidPropertErrorMessageFormat, id))
+		serviceError := ServiceError{
+			ErrorType: InvalidPropertErrorMessageType,
+			Error:     errors.New("Id missing"),
+		}
+		return &serviceError
 	}
 
 	fmt.Sprintf("Delete property with id: %s\n", id)
@@ -147,19 +176,26 @@ func DeleteProperty(id string, ig *DbSession) error {
 
 	_, err := ig.DynamoDB.DeleteItem(input)
 	if err != nil {
-		fmt.Sprintf(PersistenceErrorMessageFormat, err)
-		return err
+		serviceError := ServiceError{
+			ErrorType: PersistenceErrorMessageType,
+			Error:     err,
+		}
+		return &serviceError
 	}
 
 	return nil
 }
 
 // persistProperty Saves the provided property against the provided DB session.
-func persistProperty(property Property, ig *DbSession) (Property, error) {
+func persistProperty(property Property, ig *DbSession) (*Property, *ServiceError) {
 
 	attributeValue, err := dynamodbattribute.MarshalMap(property)
 	if err != nil {
-		panic(fmt.Sprintf(UnmarshalErrorMessageFormat, err))
+		serviceError := ServiceError{
+			ErrorType: UnmarshalErrorMessageType,
+			Error:     err,
+		}
+		return nil, &serviceError
 	}
 
 	putItemInput := &dynamodb.PutItemInput{
@@ -169,9 +205,13 @@ func persistProperty(property Property, ig *DbSession) (Property, error) {
 
 	_, err = ig.DynamoDB.PutItem(putItemInput)
 	if err != nil {
-		fmt.Sprintf(PersistenceErrorMessageFormat, err)
+		serviceError := ServiceError{
+			ErrorType: PersistenceErrorMessageType,
+			Error:     err,
+		}
+		return nil, &serviceError
 	}
 
 	// Updated data not retuned so we send back the request item (or can perform a GetItem request)
-	return property, err
+	return &property, nil
 }

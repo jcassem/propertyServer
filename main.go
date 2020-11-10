@@ -48,11 +48,6 @@ func main() {
 
 // HandleRequest Handles REST routing
 func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// fmt.Println("Headers:")
-	// for key, value := range request.Headers {
-	// 	fmt.Printf("  %s: %s\n", key, value)
-	// }
-
 	switch request.HTTPMethod {
 	case "GET":
 		if id, ok := request.PathParameters[IDParameterName]; ok {
@@ -94,7 +89,11 @@ func raiseError(statusCode int, errorMessage string) (events.APIGatewayProxyResp
 func handleGetList() (events.APIGatewayProxyResponse, error) {
 	fmt.Printf("(GET) LIST\n")
 
-	prop, err := property.GetPropertyList(dbSession)
+	prop, serviceError := property.GetPropertyList(dbSession)
+	if serviceError != nil {
+		return handleError(serviceError)
+	}
+
 	propJSON, err := json.Marshal(prop)
 	if err != nil {
 		return events.APIGatewayProxyResponse{Body: jsonTransformationErrorMessage, StatusCode: 500}, err
@@ -103,10 +102,37 @@ func handleGetList() (events.APIGatewayProxyResponse, error) {
 	return events.APIGatewayProxyResponse{Body: string(propJSON), StatusCode: 200}, nil
 }
 
+func handleError(err *property.ServiceError) (events.APIGatewayProxyResponse, error) {
+	fmt.Printf("%s, %v\n", err.ErrorType, err.Error)
+
+	switch err.ErrorType {
+	case property.QueryErrorMessageType:
+		return events.APIGatewayProxyResponse{Body: err.ErrorType, StatusCode: 500}, err.Error
+
+	case property.UnmarshalErrorMessageType:
+		return events.APIGatewayProxyResponse{Body: err.ErrorType, StatusCode: 500}, err.Error
+
+	case property.NotFoundErrorMessageType:
+		return events.APIGatewayProxyResponse{Body: err.ErrorType, StatusCode: 404}, err.Error
+
+	case property.InvalidPropertErrorMessageType:
+		return events.APIGatewayProxyResponse{Body: err.ErrorType, StatusCode: 500}, err.Error
+
+	case property.PersistenceErrorMessageType:
+		return events.APIGatewayProxyResponse{Body: err.ErrorType, StatusCode: 500}, err.Error
+	}
+
+	return events.APIGatewayProxyResponse{Body: err.ErrorType, StatusCode: 500}, err.Error
+}
+
 func handleGet(id string) (events.APIGatewayProxyResponse, error) {
 	fmt.Printf("(GET) ITEM\n")
 
-	prop, err := property.GetProperty(id, dbSession)
+	prop, serviceError := property.GetProperty(id, dbSession)
+	if serviceError != nil {
+		return handleError(serviceError)
+	}
+
 	propJSON, err := json.Marshal(prop)
 	if err != nil {
 		return events.APIGatewayProxyResponse{Body: jsonTransformationErrorMessage, StatusCode: 500}, err
@@ -121,7 +147,11 @@ func handlePost(requestBody string) (events.APIGatewayProxyResponse, error) {
 	var propertyToCreate property.Property
 	json.Unmarshal([]byte(requestBody), &propertyToCreate)
 
-	prop, err := property.CreateProperty(propertyToCreate, dbSession)
+	prop, serviceError := property.CreateProperty(propertyToCreate, dbSession)
+	if serviceError != nil {
+		return handleError(serviceError)
+	}
+
 	propJSON, err := json.Marshal(prop)
 	if err != nil {
 		return events.APIGatewayProxyResponse{Body: jsonTransformationErrorMessage, StatusCode: 500}, err
@@ -136,7 +166,11 @@ func handlePut(id string, requestBody string) (events.APIGatewayProxyResponse, e
 	var propertyToUpdate property.Property
 	json.Unmarshal([]byte(requestBody), &propertyToUpdate)
 
-	prop, err := property.UpdateProperty(id, propertyToUpdate, dbSession)
+	prop, serviceError := property.UpdateProperty(id, propertyToUpdate, dbSession)
+	if serviceError != nil {
+		return handleError(serviceError)
+	}
+
 	propJSON, err := json.Marshal(prop)
 	if err != nil {
 		return events.APIGatewayProxyResponse{Body: jsonTransformationErrorMessage, StatusCode: 500}, err
@@ -148,9 +182,9 @@ func handlePut(id string, requestBody string) (events.APIGatewayProxyResponse, e
 func handleDelete(id string) (events.APIGatewayProxyResponse, error) {
 	fmt.Printf("(DELETE) ITEM\n")
 
-	err := property.DeleteProperty(id, dbSession)
-	if err != nil {
-		return events.APIGatewayProxyResponse{Body: jsonTransformationErrorMessage, StatusCode: 500}, err
+	serviceError := property.DeleteProperty(id, dbSession)
+	if serviceError != nil {
+		return handleError(serviceError)
 	}
 
 	return events.APIGatewayProxyResponse{StatusCode: 200}, nil
