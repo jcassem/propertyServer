@@ -53,13 +53,20 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 	// 	fmt.Printf("  %s: %s\n", key, value)
 	// }
 
-	if request.HTTPMethod == "GET" {
+	switch request.HTTPMethod {
+	case "GET":
 		if id, ok := request.PathParameters[IDParameterName]; ok {
 			return handleGet(id)
 		}
 
 		return handleGetList()
-	} else if request.HTTPMethod == "PUT" {
+	case "POST":
+		if request.Body == "" {
+			return raiseError(400, requestBodyCannotBeEmptyErrorMessage)
+		}
+
+		return handlePost(request.Body)
+	case "PUT":
 		if id, ok := request.PathParameters[IDParameterName]; ok {
 			if request.Body == "" {
 				return raiseError(400, requestBodyCannotBeEmptyErrorMessage)
@@ -69,13 +76,13 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 		}
 
 		return raiseError(400, idParameterCannotBeEmptyErrorMessage)
-	} else if request.HTTPMethod == "POST" {
-		if request.Body == "" {
-			return raiseError(400, requestBodyCannotBeEmptyErrorMessage)
+	case "DELETE":
+		if id, ok := request.PathParameters[IDParameterName]; ok {
+			return handleDelete(id)
 		}
 
-		return handlePost(request.Body)
-	} else {
+		return raiseError(400, idParameterCannotBeEmptyErrorMessage)
+	default:
 		return raiseError(502, httpMethodNotSupportedErrorMessage)
 	}
 }
@@ -87,23 +94,25 @@ func raiseError(statusCode int, errorMessage string) (events.APIGatewayProxyResp
 func handleGetList() (events.APIGatewayProxyResponse, error) {
 	fmt.Printf("(GET) LIST\n")
 
-	b, err := json.Marshal(property.GetPropertyList(dbSession))
+	prop, err := property.GetPropertyList(dbSession)
+	propJSON, err := json.Marshal(prop)
 	if err != nil {
 		return events.APIGatewayProxyResponse{Body: jsonTransformationErrorMessage, StatusCode: 500}, err
 	}
 
-	return events.APIGatewayProxyResponse{Body: string(b), StatusCode: 200}, nil
+	return events.APIGatewayProxyResponse{Body: string(propJSON), StatusCode: 200}, nil
 }
 
 func handleGet(id string) (events.APIGatewayProxyResponse, error) {
 	fmt.Printf("(GET) ITEM\n")
 
-	b, err := json.Marshal(property.GetProperty(id, dbSession))
+	prop, err := property.GetProperty(id, dbSession)
+	propJSON, err := json.Marshal(prop)
 	if err != nil {
 		return events.APIGatewayProxyResponse{Body: jsonTransformationErrorMessage, StatusCode: 500}, err
 	}
 
-	return events.APIGatewayProxyResponse{Body: string(b), StatusCode: 200}, nil
+	return events.APIGatewayProxyResponse{Body: string(propJSON), StatusCode: 200}, nil
 }
 
 func handlePost(requestBody string) (events.APIGatewayProxyResponse, error) {
@@ -112,12 +121,13 @@ func handlePost(requestBody string) (events.APIGatewayProxyResponse, error) {
 	var propertyToCreate property.Property
 	json.Unmarshal([]byte(requestBody), &propertyToCreate)
 
-	b, err := json.Marshal(property.CreateProperty(propertyToCreate, dbSession))
+	prop, err := property.CreateProperty(propertyToCreate, dbSession)
+	propJSON, err := json.Marshal(prop)
 	if err != nil {
 		return events.APIGatewayProxyResponse{Body: jsonTransformationErrorMessage, StatusCode: 500}, err
 	}
 
-	return events.APIGatewayProxyResponse{Body: string(b), StatusCode: 200}, nil
+	return events.APIGatewayProxyResponse{Body: string(propJSON), StatusCode: 200}, nil
 }
 
 func handlePut(id string, requestBody string) (events.APIGatewayProxyResponse, error) {
@@ -126,10 +136,22 @@ func handlePut(id string, requestBody string) (events.APIGatewayProxyResponse, e
 	var propertyToUpdate property.Property
 	json.Unmarshal([]byte(requestBody), &propertyToUpdate)
 
-	b, err := json.Marshal(property.UpdateProperty(id, propertyToUpdate, dbSession))
+	prop, err := property.UpdateProperty(id, propertyToUpdate, dbSession)
+	propJSON, err := json.Marshal(prop)
 	if err != nil {
 		return events.APIGatewayProxyResponse{Body: jsonTransformationErrorMessage, StatusCode: 500}, err
 	}
 
-	return events.APIGatewayProxyResponse{Body: string(b), StatusCode: 200}, nil
+	return events.APIGatewayProxyResponse{Body: string(propJSON), StatusCode: 200}, nil
+}
+
+func handleDelete(id string) (events.APIGatewayProxyResponse, error) {
+	fmt.Printf("(DELETE) ITEM\n")
+
+	err := property.DeleteProperty(id, dbSession)
+	if err != nil {
+		return events.APIGatewayProxyResponse{Body: jsonTransformationErrorMessage, StatusCode: 500}, err
+	}
+
+	return events.APIGatewayProxyResponse{StatusCode: 200}, nil
 }

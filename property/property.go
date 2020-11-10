@@ -41,11 +41,17 @@ const (
 	PersistenceErrorMessageFormat = "An error occured while saving: %v"
 )
 
+// ServiceError Error wrapper
+type ServiceError struct {
+	ErrorType string //
+	Error     error
+}
+
 // tableName DynamoDb table name to query against
 const tableName = "props"
 
 // GetPropertyList Lists all properties
-func GetPropertyList(ig *DbSession) []Property {
+func GetPropertyList(ig *DbSession) (*[]Property, error) {
 	fmt.Printf("List Properties\n")
 	propertyList := []Property{}
 
@@ -55,19 +61,21 @@ func GetPropertyList(ig *DbSession) []Property {
 
 	result, err := ig.DynamoDB.Scan(queryParams)
 	if err != nil {
-		panic(fmt.Sprintf(QueryErrorMessageFormat, err))
+		fmt.Sprintf(QueryErrorMessageFormat, err)
+		return nil, err
 	}
 
 	err = dynamodbattribute.UnmarshalListOfMaps(result.Items, &propertyList)
 	if err != nil {
-		panic(fmt.Sprintf(UnmarshalErrorMessageFormat, err))
+		fmt.Sprintf(UnmarshalErrorMessageFormat, err)
+		return nil, err
 	}
 
-	return propertyList
+	return &propertyList, err
 }
 
 // GetProperty Property related to provided id.
-func GetProperty(id string, ig *DbSession) Property {
+func GetProperty(id string, ig *DbSession) (*Property, error) {
 	fmt.Printf("Get Property with id: %s\n", id)
 	property := Property{}
 
@@ -81,46 +89,73 @@ func GetProperty(id string, ig *DbSession) Property {
 	})
 
 	if err != nil {
-		panic(fmt.Sprintf(QueryErrorMessageFormat, err))
+		fmt.Sprintf(QueryErrorMessageFormat, err)
+		return nil, err
 	}
 
 	if result.Item == nil {
-		panic(fmt.Sprintf(NotFoundErrorMessageFormat, id))
+		fmt.Sprintf(NotFoundErrorMessageFormat, id)
+		return nil, err
 	}
 
 	err = dynamodbattribute.UnmarshalMap(result.Item, &property)
-
 	if err != nil {
-		panic(fmt.Sprintf(UnmarshalErrorMessageFormat, err))
+		fmt.Sprintf(UnmarshalErrorMessageFormat, err)
 	}
 
-	return property
+	return &property, err
 }
 
 // CreateProperty Persists the provided property item.
-func CreateProperty(property Property, ig *DbSession) Property {
+func CreateProperty(property Property, ig *DbSession) (Property, error) {
 	if property.Name == "" {
 		panic(fmt.Sprintf(InvalidPropertErrorMessageFormat, property))
 	}
 
 	property.ID = fmt.Sprintf("%v", uuid.Must(uuid.NewRandom()))
-	fmt.Printf("Create property with id: %s\n", property.ID)
+	fmt.Sprintf("Create property with id: %s\n", property.ID)
 
 	return persistProperty(property, ig)
 }
 
 // UpdateProperty Updates and persists the provided property details against the provided id.
-func UpdateProperty(id string, property Property, ig *DbSession) Property {
+func UpdateProperty(id string, property Property, ig *DbSession) (Property, error) {
 	if id == "" || id != property.ID {
 		panic(fmt.Sprintf(InvalidPropertErrorMessageFormat, property))
 	}
 
-	fmt.Printf("Update property with id: %s\n", property.ID)
+	fmt.Sprintf("Update property with id: %s\n", property.ID)
 	return persistProperty(property, ig)
 }
 
+// DeleteProperty Deletes property associated to the provided id.
+func DeleteProperty(id string, ig *DbSession) error {
+	if id == "" {
+		panic(fmt.Sprintf(InvalidPropertErrorMessageFormat, id))
+	}
+
+	fmt.Sprintf("Delete property with id: %s\n", id)
+
+	input := &dynamodb.DeleteItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"id": {
+				S: aws.String(id),
+			},
+		},
+		TableName: aws.String(tableName),
+	}
+
+	_, err := ig.DynamoDB.DeleteItem(input)
+	if err != nil {
+		fmt.Sprintf(PersistenceErrorMessageFormat, err)
+		return err
+	}
+
+	return nil
+}
+
 // persistProperty Saves the provided property against the provided DB session.
-func persistProperty(property Property, ig *DbSession) Property {
+func persistProperty(property Property, ig *DbSession) (Property, error) {
 
 	attributeValue, err := dynamodbattribute.MarshalMap(property)
 	if err != nil {
@@ -134,9 +169,9 @@ func persistProperty(property Property, ig *DbSession) Property {
 
 	_, err = ig.DynamoDB.PutItem(putItemInput)
 	if err != nil {
-		panic(fmt.Sprintf(PersistenceErrorMessageFormat, err))
+		fmt.Sprintf(PersistenceErrorMessageFormat, err)
 	}
 
 	// Updated data not retuned so we send back the request item (or can perform a GetItem request)
-	return property
+	return property, err
 }
