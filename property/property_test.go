@@ -65,13 +65,25 @@ func (fd *fakeDynamoDB) PutItem(input *dynamodb.PutItemInput) (*dynamodb.PutItem
 	return output, fd.err
 }
 
+// Mock DeleteItem
+func (fd *fakeDynamoDB) DeleteItem(input *dynamodb.DeleteItemInput) (*dynamodb.DeleteItemOutput, error) {
+	output := new(dynamodb.DeleteItemOutput)
+
+	return output, fd.err
+}
+
 func TestGetProperty(t *testing.T) {
 	var expected = getExpectedProperty()
 
 	getter := new(DbSession)
 	getter.DynamoDB = &fakeDynamoDB{}
 
-	if actual := GetProperty(expected.ID, getter); actual != expected {
+	actual, err := GetProperty(expected.ID, getter)
+
+	if err != nil {
+		t.Errorf("Error occured during test step, %v", err)
+	}
+	if !reflect.DeepEqual(actual, &expected) {
 		t.Errorf("Expected %v but got %v", expected, actual)
 	}
 }
@@ -82,7 +94,12 @@ func TestGetPropertyList(t *testing.T) {
 	getter := new(DbSession)
 	getter.DynamoDB = &fakeDynamoDB{}
 
-	if actual := GetPropertyList(getter); !reflect.DeepEqual(actual, expected) {
+	actual, err := GetPropertyList(getter)
+
+	if err != nil {
+		t.Errorf("Error occured during test step, %v", err)
+	}
+	if !reflect.DeepEqual(actual, &expected) {
 		t.Errorf("Expected %v but got %v", expected, actual)
 	}
 }
@@ -93,10 +110,16 @@ func TestCreateProperty(t *testing.T) {
 	getter := new(DbSession)
 	getter.DynamoDB = &fakeDynamoDB{}
 
-	actual := CreateProperty(expected, getter)
+	actual, err := CreateProperty(expected, getter)
 
+	if err != nil {
+		t.Errorf("Error occured during test step, %v", err)
+	}
 	if expected.Name != actual.Name || expected.Rent != actual.Rent {
 		t.Errorf("Expected %v but got %v", expected, actual)
+	}
+	if actual.ID == "" {
+		t.Errorf("ID not set on create")
 	}
 }
 
@@ -106,7 +129,25 @@ func TestUpdateProperty(t *testing.T) {
 	getter := new(DbSession)
 	getter.DynamoDB = &fakeDynamoDB{}
 
-	if actual := UpdateProperty(expected.ID, expected, getter); !reflect.DeepEqual(actual, expected) {
+	actual, err := UpdateProperty(expected.ID, expected, getter)
+
+	if err != nil {
+		t.Errorf("Error occured during test step, %v", err)
+	}
+	if !reflect.DeepEqual(actual, &expected) {
 		t.Errorf("Expected %v but got %v", expected, actual)
+	}
+}
+
+func TestDeleteProperty(t *testing.T) {
+	var expected = getExpectedProperty()
+
+	getter := new(DbSession)
+	getter.DynamoDB = &fakeDynamoDB{}
+
+	err := DeleteProperty(expected.ID, getter)
+
+	if err != nil {
+		t.Errorf("Error occured during test step, %v", err)
 	}
 }

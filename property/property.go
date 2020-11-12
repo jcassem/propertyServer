@@ -134,7 +134,7 @@ func CreateProperty(property Property, ig *DbSession) (*Property, *ServiceError)
 	}
 
 	property.ID = fmt.Sprintf("%v", uuid.Must(uuid.NewRandom()))
-	fmt.Sprintf("Create property with id: %s\n", property.ID)
+	fmt.Printf("Create property with id: %s\n", property.ID)
 
 	return persistProperty(property, ig)
 }
@@ -149,7 +149,7 @@ func UpdateProperty(id string, property Property, ig *DbSession) (*Property, *Se
 		return nil, &serviceError
 	}
 
-	fmt.Sprintf("Update property with id: %s\n", property.ID)
+	fmt.Printf("Update property with id: %s\n", property.ID)
 	return persistProperty(property, ig)
 }
 
@@ -163,7 +163,7 @@ func DeleteProperty(id string, ig *DbSession) *ServiceError {
 		return &serviceError
 	}
 
-	fmt.Sprintf("Delete property with id: %s\n", id)
+	fmt.Printf("Delete property with id: %s\n", id)
 
 	input := &dynamodb.DeleteItemInput{
 		Key: map[string]*dynamodb.AttributeValue{

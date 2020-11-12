@@ -50,4 +50,7 @@ curl -H "Content-Type: application/json" -X POST -d '{"name":"99 Fleet Street","
 curl -H "Content-Type: application/json" -X PUT \
     -d '{"id": "01b08170-bc7a-459a-a785-089f9df1a896","name":"99b Fleet Street","rent":500.00}' \
     http://localhost:3000/property/01b08170-bc7a-459a-a785-089f9df1a896
+
+# DELETE (Item)
+curl -X DELETE http://localhost:3000/property/01b08170-bc7a-459a-a785-089f9df1a896
 ```

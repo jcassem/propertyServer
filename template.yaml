@@ -37,5 +37,5 @@ Resources:
         Api5:
           Type: Api
           Properties:
-            Path: /MyResource
-            Method: ANY
+            Path: /property/{id}
+            Method: DELETE

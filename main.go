@@ -78,6 +78,7 @@ func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 
 		return raiseError(400, idParameterCannotBeEmptyErrorMessage)
 	default:
+		fmt.Printf("Invalid request of type: %s n", request.HTTPMethod)
 		return raiseError(502, httpMethodNotSupportedErrorMessage)
 	}
 }
